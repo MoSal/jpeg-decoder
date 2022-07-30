@@ -880,7 +880,7 @@ impl<R: Read> Decoder<R> {
 
                 for (i, component) in components.iter().enumerate() {
                     for v_pos in 0..mcu_vertical_samples[i] {
-                        for h_pos in 0..mcu_horizontal_samples[i] {
+                        'H_POS: for h_pos in 0..mcu_horizontal_samples[i] {
                             let coefficients = if is_progressive {
                                 let block_y = (mcu_y * mcu_vertical_samples[i] + v_pos) as usize;
                                 let block_x = (mcu_x * mcu_horizontal_samples[i] + h_pos) as usize;
@@ -911,7 +911,7 @@ impl<R: Read> Decoder<R> {
                             .unwrap();
 
                             if scan.successive_approximation_high == 0 {
-                                decode_block(
+                                let res = decode_block(
                                     &mut self.reader,
                                     coefficients,
                                     &mut huffman,
@@ -921,9 +921,13 @@ impl<R: Read> Decoder<R> {
                                     scan.successive_approximation_low,
                                     &mut eob_run,
                                     &mut dc_predictors[i],
-                                )?;
+                                );
+                                if let Err(_e) = res {
+                                    // Ignore error for now to continue decoding
+                                    continue 'H_POS;
+                                }
                             } else {
-                                decode_block_successive_approximation(
+                                let res = decode_block_successive_approximation(
                                     &mut self.reader,
                                     coefficients,
                                     &mut huffman,
@@ -931,7 +935,11 @@ impl<R: Read> Decoder<R> {
                                     scan.spectral_selection.clone(),
                                     scan.successive_approximation_low,
                                     &mut eob_run,
-                                )?;
+                                );
+                                if let Err(_e) = res {
+                                    // Ignore error for now to continue decoding
+                                    continue 'H_POS;
+                                }
                             }
                         }
                     }
