@@ -636,8 +636,9 @@ impl<R: Read> Decoder<R> {
             && self.coefficients.len() == frame.components.len()
         {
             for (i, component) in frame.components.iter().enumerate() {
-                // Only dealing with unfinished components
-                if self.coefficients_finished[i] == !0 {
+                // Only dealing with unfinished components, or components with no successfully
+                // decoded data.
+                if self.coefficients_finished[i] == !0 && !planes[i].is_empty() {
                     continue;
                 }
 
