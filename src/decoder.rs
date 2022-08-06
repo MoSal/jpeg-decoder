@@ -843,7 +843,10 @@ impl<R: Read> Decoder<R> {
 
                 if self.restart_interval > 0 {
                     if mcus_left_until_restart == 0 {
-                        match huffman.take_marker(&mut self.reader)? {
+                        let marker_opt = huffman.take_marker(&mut self.reader)
+                            // ignore read error for now
+                            .unwrap_or_default();
+                        match marker_opt {
                             Some(Marker::RST(n)) => {
                                 if n != expected_rst_num {
                                     return Err(Error::Format(format!(
@@ -868,10 +871,13 @@ impl<R: Read> Decoder<R> {
                                 )))
                             }
                             None => {
+                                // ignore read error for now
+                                /*
                                 return Err(Error::Format(format!(
                                     "no marker found where RST{} was expected",
                                     expected_rst_num
                                 )))
+                                */
                             }
                         }
                     }
@@ -991,7 +997,9 @@ impl<R: Read> Decoder<R> {
             }
         }
 
-        let mut marker = huffman.take_marker(&mut self.reader)?;
+        let mut marker = huffman.take_marker(&mut self.reader)
+            // assume None if failed to read marker
+            .unwrap_or_default();
         while let Some(Marker::RST(_)) = marker {
             marker = self.read_marker().ok();
         }
